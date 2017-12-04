@@ -1,0 +1,47 @@
+---
+title: ""
+author: "Christian Nogueira"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(dplyr)
+```
+
+```{r echo=FALSE, Load_the_Data}
+
+```
+
+# Introduction
+
+[Kaggle](https://www.kaggle.com/zynicide/wine-reviews/data)
+
+# Univariate Plots Section
+
+# Univariate Analysis
+### What is the structure of your dataset?
+### What is/are the main feature(s) of interest in your dataset?
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+### Did you create any new variables from existing variables in the dataset?
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+# Bivariate Plots Section
+
+# Bivariate Analysis
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+### What was the strongest relationship you found?
+
+# Multivariate Plots Section
+
+# Multivariate Analysis
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+### Were there any interesting or surprising interactions between features?
+
+# Final Plots and Summary
+
+# Reflection
