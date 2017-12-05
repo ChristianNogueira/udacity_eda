@@ -1,6 +1,6 @@
 ---
-title: ""
-author: "Christian Nogueira"
+title: "Análise Exploratória de Dados Sobre Vinhos Brancos e Tintos"
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -9,21 +9,63 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
 library(ggplot2)
+library(gridExtra)
 library(dplyr)
+library(data.table)
+library(PerformanceAnalytics)
 ```
 
-```{r echo=FALSE, Load_the_Data}
+```{r echo=FALSE, Load_the_Data, warning=FALSE}
+# path of files
+file_white_path <- "~/udacity/eda/data/wineQualityWhites.csv"
+file_red_path <- "~/udacity/eda/data/wineQualityReds.csv"
 
+# read data and assign origin of data to type variable
+# removes the V1 variable created by the index columns in csv
+df = rbindlist(list(
+        white = df_white <- fread(file_white_path, encoding = 'UTF-8'),
+        red = df_red <- fread(file_red_path, encoding = 'UTF-8')), 
+        idcol = "type")[, ":=" (V1=NULL, type=as.factor(type))]
 ```
 
-# Introduction
+# Introdução
 
-[Kaggle](https://www.kaggle.com/zynicide/wine-reviews/data)
+
 
 # Univariate Plots Section
 
 # Univariate Analysis
 ### What is the structure of your dataset?
+
+```{r}
+str(df)
+```
+
+```{r}
+summary(df)
+```
+
+```{r}
+df_scale <- as.data.frame(lapply(select(df, -type), scale))
+ggplot(stack(df_scale), aes(x = ind, y = values)) + 
+    geom_violin() +
+    labs(title ="Distribuição das Variáveis de Forma Normalizada", 
+         x = "Variáveis", 
+         y = "Frequancia") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+A informação mais importante que temos é a mensuração da qualidade do vinho `quality`.
+
+```{r}
+# grades are suposed to be from 0 to 10
+ggplot(df, aes(x = quality))  +
+    geom_histogram(bins = 11, breaks = (seq(0, 11))) +
+    labs(title ="Frequencia das notas obtidas dos vinhos", 
+         x = "Notas Obtidas na Qualidade (quality)", 
+         y = "Contagem de Ocorrencias")
+```
+
 ### What is/are the main feature(s) of interest in your dataset?
 ### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
 ### Did you create any new variables from existing variables in the dataset?
@@ -32,6 +74,10 @@ library(dplyr)
 # Bivariate Plots Section
 
 # Bivariate Analysis
+```{r, echo=FALSE, warning=FALSE}
+chart.Correlation(mutate(df, type=as.numeric(type)))
+```
+
 ### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
 ### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
 ### What was the strongest relationship you found?
