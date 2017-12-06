@@ -151,12 +151,12 @@ ggplot(df, aes(x = chlorides))  +
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
-A concentração de sais possui uma concentração muito grande de ocorrências no intervalo de 0 a 0.1, assim para poder observar melhor a distribuição da cauda, plotamos novamente com a escala da contagem modificada pela raiz.
+A concentração de sais possui uma concentração muito grande de ocorrências no intervalo de 0 a 0.1, assim para poder observar melhor a distribuição da cauda, plotamos novamente com a escala da contagem modificada pelo log.
 
 ``` r
 ggplot(df, aes(x = chlorides))  +
     geom_histogram(bins = 40) +
-    coord_trans(y = "sqrt") +
+    coord_trans(x = 'log10') +
     labs(title ="Histograma da consentração de cloretos (sais)", 
          x = "Consentração em g/l", 
          y = "Contagem de Ocorrencias")
@@ -179,7 +179,7 @@ Na concentração de açucares, como nas concentrações de sais, uma concentra�
 ``` r
 ggplot(df, aes(x = residual.sugar))  +
     geom_histogram(bins = 50) +
-    coord_trans(y = "sqrt") +
+    scale_x_log10() +
     labs(title ="Histograma da consentração de açucar residual", 
          x = "Açucar Residual (g/l)", 
          y = "Contagem de Ocorrencias")
@@ -187,7 +187,9 @@ ggplot(df, aes(x = residual.sugar))  +
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
-Novamente alterando a escala da contagem para a raiz, podemos observar a ocorrência de um vinho com uma quantidade extremamente alta em contraste aos demais. Observando uma a referencia do [Wikipédia](https://en.wikipedia.org/wiki/Sweetness_of_wine) podemos observar que essa ocorrência que observamos é a unica onde possui a classificação de vinho doce (&gt;40g/l).
+Novamente alterando a escala da contagem para log, podemos observar a ocorrência de um vinho com uma quantidade extremamente alta em contraste aos demais. A distribuição também apresenta aspecto bi-modal que pode ser invertigado uma relação com outras variáveis.
+
+Observando uma a referencia do [Wikipédia](https://en.wikipedia.org/wiki/Sweetness_of_wine) podemos observar que essa ocorrência que observamos é a unica onde possui a classificação de vinho doce (&gt;40g/l).
 
 ``` r
 # update of df to remove the sweet wine
