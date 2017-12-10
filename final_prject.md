@@ -181,13 +181,13 @@ ggplot(df, aes(x = residual.sugar))  +
     geom_histogram(bins = 50) +
     scale_x_log10() +
     labs(title ="Histograma da consentração de açucar residual", 
-         x = "Açucar Residual (g/l)", 
+         x = "Açucar Residual log (g/l)", 
          y = "Contagem de Ocorrencias")
 ```
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
-Novamente alterando a escala da contagem para log, podemos observar a ocorrência de um vinho com uma quantidade extremamente alta em contraste aos demais. A distribuição também apresenta aspecto bi-modal que pode ser invertigado uma relação com outras variáveis.
+Novamente alterando a escala da contagem para log, podemos observar a ocorrência de um vinho com uma quantidade extremamente alta em contraste aos demais. A distribuição também apresenta aspecto bi-modal que pode ser investigado uma relação com outras variáveis.
 
 Observando uma a referencia do [Wikipédia](https://en.wikipedia.org/wiki/Sweetness_of_wine) podemos observar que essa ocorrência que observamos é a unica onde possui a classificação de vinho doce (&gt;40g/l).
 
@@ -205,11 +205,25 @@ Criamos o agrupamento dos tipos de vinho referente a quantidade de açúcar resi
 
 ``` r
 ggplot(df, aes(x = sweetness_class, y = residual.sugar)) +
-    geom_jitter(alpha = 0.1) +
-    geom_boxplot(alpha = 0.1, col = "red") 
+    geom_jitter(alpha = 0.1, size = 0.9) +
+    geom_boxplot(alpha = 0.1, col = "red") +
+    labs(title ="BoxPlot da consentração de açucar residual por categoria", 
+         x = "Classificação do vinho", 
+         y = "Açucar Residual (g/l)")
 ```
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-14-1.png)
+
+``` r
+ggplot(df, aes(x = residual.sugar, color = as.factor(sweetness_class))) +
+    geom_density(alpha = 0.1, size = 1) +
+    labs(title ="Gráfico de densidade da consentração de açucar residual por categoria", 
+         x = "Açucar Residual (g/l)", 
+         y = "% de Ocorrência",
+         color = 'Classificação do vinho')
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-15-1.png)
 
 Podemos observar que os vinhos secos possuem uma dispersão muito menor em relação aos demais.
 
@@ -220,25 +234,140 @@ Análise Bivariada
 chart.Correlation(select(df, -sweetness_class))
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-15-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
-### Discuta sobre alguns dos relacionamentos observados nesta parte da investigação. Como os atributos de interesse variaram no conjunto de dados?
+``` r
+ggplot(df, aes(y = alcohol, x = as.factor(quality), fill = as.factor(quality))) + 
+    geom_boxplot() +
+    labs(title ="Boxplot da Distribuição da consentração de alcool por qualidade", 
+         x = "Qualidade", 
+         y = "Consentração de alcool (%)") +
+    theme(legend.position="none")
+```
 
-### Você observou algum relacionamento interessante entre os outros atributos (os que não são de interesse)?
+![](final_prject_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
-### Qual foi o relacionamento mais forte encontrado?
+Iniciando pela
+
+``` r
+ggplot(df, aes(x = residual.sugar, color = as.factor(quality)))  +
+    geom_density() +
+    scale_x_log10() +
+    scale_colour_brewer(palette = 'Spectral') +
+    labs(title ="", 
+         x = "Açucar Residual log (g/l)", 
+         y = "Frequência")
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-18-1.png)
+
+``` r
+ggplot(df, aes(x = residual.sugar, y = density)) + 
+    geom_jitter(alpha = 0.1) +
+    geom_smooth(method = 'lm')
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-19-1.png)
 
 Análise Multivariada
 ====================
 
-### Discuta sobre os relacionamentos observados nesta parte da investigação. Quais atributos que fortaleceram os demais na observação das variáveis de interesse?
+``` r
+colors_spectral <- rev(brewer.pal(11, 'Spectral'))
+ggplot(df, aes(x = residual.sugar, y = density, color = quality)) + 
+    geom_jitter(alpha = 0.3, size = 1.5) +
+    scale_colour_gradientn(colours = colors_spectral) +
+    geom_smooth(method = 'lm', formula = y ~ x, se = FALSE, linetype = 'dashed')
+```
 
-### Interações surpreendentes e/ou interessantes foram encontradas entre os atributos?
+![](final_prject_files/figure-markdown_github/unnamed-chunk-20-1.png)
 
-### OPCIONAL: Modelos foram criados usando este conjunto de dados? Discuta sobre os pontos fortes e as limitações do seu modelo.
+``` r
+ggplot(df, aes(x = quality, y = residual.sugar, color = density)) + 
+    geom_jitter(alpha = 0.8) +
+    scale_colour_gradientn(colours = colors_spectral)
+```
 
-Gráficos Finais e Sumário (3)
-=============================
+![](final_prject_files/figure-markdown_github/unnamed-chunk-21-1.png)
+
+``` r
+ggplot(df, aes(x = quality, y = chlorides, color = alcohol)) + 
+    geom_jitter(alpha = 0.8) +
+    scale_colour_gradientn(colours = colors_spectral)
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-22-1.png)
+
+``` r
+library(glmnet)
+```
+
+    ## Loading required package: Matrix
+
+    ## 
+    ## Attaching package: 'Matrix'
+
+    ## The following object is masked from 'package:tidyr':
+    ## 
+    ##     expand
+
+    ## Loading required package: foreach
+
+    ## Loaded glmnet 2.0-13
+
+``` r
+cv_fit_lasso <- cv.glmnet(as.matrix(select(df, -quality, -sweetness_class)),
+                          as.matrix(select(df, quality)))
+cv_fit_coef <- coef(cv_fit_lasso, s = "lambda.1se")
+
+cv_fit_coef_df <- as.data.frame(as.matrix(cv_fit_coef)) %>%
+    rename(lasso = '1') %>%
+    rownames_to_column(var = 'variable')
+
+ggplot(filter(cv_fit_coef_df, variable != '(Intercept)'), aes(x = variable, y = lasso)) +
+    geom_point() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title ="Regressão Lasso", 
+         x = "Variáveis", 
+         y = "Lasso")
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-23-1.png)
+
+Incluímos uma análise de regressão por Lasso para ajudar a identificar variáveis que podem agregar mais no momento de determinar um modelo para os dados. Podemos ver um destaque para a densidade, algo que foi observado anteriormente em conjunto com o açúcar residual.
+
+Gráficos Finais e Sumário
+=========================
+
+Nos últimos gráficos vamos explorar mais como as características se distinguem dentro dos grupos de vinhos `Dry`, `Medium dry` e `Medium`.
+
+``` r
+ggplot(df, aes(x = alcohol, y = density, col = sweetness_class)) +
+    geom_jitter(alpha = 0.3) +
+    stat_smooth(method = 'lm')
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-24-1.png)
+
+É interessante observar como as relações entre álcool e densidade se distinguem quando observados entre os grupos de vinhos.
+
+``` r
+ggplot(df, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide, col = sweetness_class)) +
+    scale_x_log10() +
+    geom_jitter() +
+    stat_smooth(method = 'lm')
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-25-1.png)
+
+Para a relação entre o total de dióxido de enxofre e a quantidade livre, não é possível observar uma boa distinção dos grupos, porem pelas regressões lineares, podemos observar um alinhamento maior entre os grupos `Meidum` e `Medium dry`.
+
+``` r
+ggplot(df, aes(x = volatile.acidity, y = fixed.acidity, col = sweetness_class)) +
+    geom_jitter(alpha = 0.6) 
+```
+
+![](final_prject_files/figure-markdown_github/unnamed-chunk-26-1.png)
 
 Reflexão
 ========
