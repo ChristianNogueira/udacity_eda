@@ -16,6 +16,8 @@ library(data.table)
 library(PerformanceAnalytics)
 library(RColorBrewer)
 library(tibble)
+library(purrr)
+library(glmnet)
 ```
 
 ```{r, Load_the_Data, warning=FALSE, echo=FALSE}
@@ -54,7 +56,7 @@ ggplot(stack(df_scale), aes(x = ind, y = values)) +
 
 Pelo gráfico da distribuição das variáveis na mesma escaladas podemos observar alguns casos com comportamento que re-assemelham a distribuição normal, como o ácidos fixos do vinho `fixed.acidity`, o pH e os sulfatos `sulphates`. Outra observação que podemos notar é a ocorrência de valores extremos principalmente na densidade `density` e no dióxido de enxofre livre `free.sulfur.dioxide` que precisam ser avaliados individualmente.
 
-A informação mais importante que temos é a avaliação sensorial da qualidade do vinho `quality`. 
+A informação mais importante que temos é a avaliação sensorial da qualidade do vinho `quality`, qual é dependente de uma avaliação sensorial para sua atribuição e é mais possui margem para um bias do avaliador.
 
 ```{r, warning=FALSE}
 ggplot(df, aes(x = quality))  +
@@ -104,7 +106,7 @@ Podemos ter observar a semelhança ao comparar contra a curva normal teórica co
 
 ```{r, warning=FALSE}
 ggplot(df, aes(x = alcohol))  +
-    geom_histogram(bins = 35) +
+    geom_histogram(bins = 15) +
     labs(title ="Histograma da consentração de álcool", 
          x = "Consentração de álcool em %", 
          y = "Contagem de Ocorrencias")
@@ -128,6 +130,8 @@ ggplot(df, aes(x = chlorides))  +
          x = "Consentração em g/l", 
          y = "Contagem de Ocorrencias")
 ```
+
+Com a escala ajustada para log podemos ter uma observação muito melhor de uma distribuição se assemelhando a uma distribuição normal.
 
 ```{r, warning=FALSE}
 ggplot(df, aes(x = residual.sugar))  +
@@ -199,22 +203,28 @@ ggplot(df, aes(y = alcohol, x = as.factor(quality), fill = as.factor(quality))) 
     theme(legend.position="none")
 ```
 
-Iniciando pela 
+A qualidade é o fator que mais nos interessa, assim observando inicialmente contra a concentração de álcool pois é o fator que possui foi encontrado a maior correlação com a qualidade.
 
 ```{r}
 ggplot(df, aes(x = residual.sugar, color = as.factor(quality)))  +
     geom_density() +
     scale_x_log10() +
     scale_colour_brewer(palette = 'Spectral') +
-    labs(title ="", 
+    labs(title ="Frequencia do açucar residual por qualidade", 
          x = "Açucar Residual log (g/l)", 
-         y = "Frequência")
+         y = "Frequência",
+         color = "Qualidade")
 ```
+
+É interessante notar que a bimodalidade do açúcar residual é mais intensa sobre os vinhos com notas menores, conforme o aumento da qualidade, a distribuição se se acentua para concentrações menores de açúcar residual.
 
 ```{r}
 ggplot(df, aes(x = residual.sugar, y = density)) + 
     geom_jitter(alpha = 0.1) +
-    geom_smooth(method = 'lm')
+    geom_smooth(method = 'lm') +
+    labs(title ="Densidade pelo açucar residual", 
+         x = "Açucar Residual log (g/l)", 
+         y = "Densidade")
 ```
 
 # Análise Multivariada
@@ -224,24 +234,40 @@ colors_spectral <- rev(brewer.pal(11, 'Spectral'))
 ggplot(df, aes(x = residual.sugar, y = density, color = quality)) + 
     geom_jitter(alpha = 0.3, size = 1.5) +
     scale_colour_gradientn(colours = colors_spectral) +
-    geom_smooth(method = 'lm', formula = y ~ x, se = FALSE, linetype = 'dashed')
+    geom_smooth(method = 'lm', formula = y ~ x, se = FALSE, linetype = 'dashed') +
+    labs(title ="Densidade pelo açucar residual atribuído por qualidade", 
+         x = "Açucar Residual log (g/l)", 
+         y = "Densidade",
+         color = "Qualidade")
 ```
+
+Ao adicionar a qualidade ao gráfico que observamos na análise bivariável, podemos ver uma distinção onde os vinhos com maior qualidade ocorrendo mais sobre a linha de regressão do açúcar residual com a densidade.
 
 ```{r}
 ggplot(df, aes(x = quality, y = residual.sugar, color = density)) + 
     geom_jitter(alpha = 0.8) +
-    scale_colour_gradientn(colours = colors_spectral)
+    scale_colour_gradientn(colours = colors_spectral) +
+    labs(title ="Açucar residual pela qualidade por densidade", 
+         x = "Qualidade", 
+         y = "Açucar Residual log (g/l)",
+         color = "Densidade")
 ```
 
 ```{r}
 ggplot(df, aes(x = quality, y = chlorides, color = alcohol)) + 
     geom_jitter(alpha = 0.8) +
-    scale_colour_gradientn(colours = colors_spectral)
+    scale_colour_gradientn(colours = colors_spectral) +
+    labs(title ="Cloretos pela qualidade por álcool", 
+         x = "Qualidade", 
+         y = "Cloretos (g/l)",
+         color = "Álcool %")
 ```
 
-```{r}
-library(glmnet)
+As maiores notas estão relacionadas a maiores níveis de álcool e menores teores de cloretos, assim direcionando para quais variáveis utilizar em modelos de determinação da qualidade.
 
+### Modelo de determinação da qualidade dos vinhos
+
+```{r, lasso_regression}
 cv_fit_lasso <- cv.glmnet(as.matrix(select(df, -quality, -sweetness_class)),
                           as.matrix(select(df, quality)))
 cv_fit_coef <- coef(cv_fit_lasso, s = "lambda.1se")
@@ -261,7 +287,31 @@ ggplot(filter(cv_fit_coef_df, variable != '(Intercept)'), aes(x = variable, y = 
 
 Incluímos uma análise de regressão por Lasso para ajudar a identificar variáveis que podem agregar mais no momento de determinar um modelo para os dados. Podemos ver um destaque para a densidade, algo que foi observado anteriormente em conjunto com o açúcar residual.
 
-# Gráficos Finais e Sumário
+Para o modelo iremos utilizar as variáveis que encontramos os maiores relacionamentos com qualidade dos vinhos. As mesmas sendo acrecidas uma a uma no modelo para observar a mudança do comportamento do modelo.
+
+- alcohol
+- density
+- residual.sugar
+- chlorides
+
+```{r}
+m1 <- lm(quality ~ alcohol, data = df)
+m2 <- update(m1, ~ . + density)
+m3 <- update(m2, ~ . + residual.sugar)
+m4 <- update(m3, ~ . + chlorides)
+
+# gather r^2 of models
+models <- list(m1, m2, m3, m4)
+map(models, summary) %>% 
+    map_df(`[`, c('r.squared'))
+
+anova(m1, m2, m3, m4, test='Chisq')
+```
+
+Infelizmente em nenhum dos modelos aplicados não foi possível obter um resultado de r^2 interessante para aplicar em futuras observações para prever a qualidade dos vinhos. Isso nos mostra que a complexidade do sabor do vinho pode estar também vinculado a outros fatores, como o processo de produção, do que simplesmente a essas propriedades observadas. 
+Pela análise ANOVA podemos observar que ao acrescentar a densidade e o açúcar residual existe uma melhora significativa do modelo. Já ao acrescentar o cloretos ao modelo houve uma melhora, porém não no mesma intensidade das demais. 
+
+# Gráficos Finais
 
 Nos últimos gráficos vamos explorar mais como as características se distinguem dentro dos grupos de vinhos `Dry`, `Medium dry` e `Medium`.
 
@@ -271,7 +321,7 @@ ggplot(df, aes(x = alcohol, y = density, col = sweetness_class)) +
     stat_smooth(method = 'lm')
 ```
 
-É interessante observar como as relações entre álcool e densidade se distinguem quando observados entre os grupos de vinhos.
+É interessante observar como as relações entre álcool e densidade. Mesmo antes de analisar os dados poderíamos supor esse relacionamento forte, mas sendo inusitado a forma como os grupos de vinho se distinguem dentro desse relacionamento.
 
 ```{r}
 ggplot(df, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide, col = sweetness_class)) +
@@ -287,7 +337,12 @@ ggplot(df, aes(x = volatile.acidity, y = fixed.acidity, col = sweetness_class)) 
     geom_jitter(alpha = 0.6) 
 ```
 
+A acidez volátil e fixa acabam não possuindo nenhuma distinção entre os grupos de vinhos.
+
 # Reflexão
+
+Foi possível encontrar relacionamentos interessantes entre as características físicas e químicas nesse conjunto de dados. A parte da análise multivariada foi as que foi possível encontrar os relacionamentos mais interessantes e os que contribuem mais para uma melhor implementação de um modelo para determinação da qualidade dos vinhos.
+Ao final o mais interessante foi poder explorar os dados e encontrar todas essas informações anteriormente ocultas nos dados.
 
 ## Referências
 
