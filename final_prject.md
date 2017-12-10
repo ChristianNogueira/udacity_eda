@@ -400,7 +400,11 @@ Nos últimos gráficos vamos explorar mais como as características se distingue
 ``` r
 ggplot(df, aes(x = alcohol, y = density, col = sweetness_class)) +
     geom_jitter(alpha = 0.3) +
-    stat_smooth(method = 'lm')
+    stat_smooth(method = 'lm') +
+    labs(title ="Densidade por percentual de álcool aberto por grupos de vinhos", 
+         x = "Álcool %", 
+         y = "Densidade kg/l",
+         color = "classificação")
 ```
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-24-1.png)
@@ -411,7 +415,11 @@ ggplot(df, aes(x = alcohol, y = density, col = sweetness_class)) +
 ggplot(df, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide, col = sweetness_class)) +
     scale_x_log10() +
     geom_jitter() +
-    stat_smooth(method = 'lm')
+    stat_smooth(method = 'lm') +
+    labs(title ="Dióxido de enxofre total por livre aberto por grupos de vinhos", 
+         x = "Dióxido de enxofre total", 
+         y = "Dióxido de enxofre livre",
+         color = "classificação")
 ```
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-25-1.png)
@@ -420,12 +428,17 @@ Para a relação entre o total de dióxido de enxofre e a quantidade livre, não
 
 ``` r
 ggplot(df, aes(x = volatile.acidity, y = fixed.acidity, col = sweetness_class)) +
-    geom_jitter(alpha = 0.6) 
+    geom_jitter(alpha = 0.6) +
+    stat_smooth(method = 'lm') +
+    labs(title ="Acidez fixa por volátil aberto por grupos de vinhos", 
+         x = "Acidez fixa", 
+         y = "Acidez volátil",
+         color = "classificação")
 ```
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-26-1.png)
 
-A acidez volátil e fixa acabam não possuindo nenhuma distinção entre os grupos de vinhos.
+A acidez volátil e fixa acabam não possuindo nenhuma distinção entre os grupos de vinhos. Pdemos ver alguma dispersão nas regresões, porém os dados são muito dispersos para poder realizar alguma conclusão.
 
 Reflexão
 ========
