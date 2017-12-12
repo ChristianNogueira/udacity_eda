@@ -63,6 +63,10 @@ summary(df)
     ##  3rd Qu.:6.000  
     ##  Max.   :9.000
 
+Em sua totalidade dos dados são de valores numéricos, sendo que a qualidade apresenta-se de forma inteira, assim nos indicando que não existe ocorrências de notas fracionadas. Dessa forma podemos também tratar as notas de qualidade como uma variável categórica.
+
+Para entender melhor o comportamento dessas variáveis e como se modelam as suas distribuições podemos gerar um gráfico de violino com os dados escalados. É importante escalar os dados pois pelo sumário das variáveis foi possível observar que as mesmas possuem intervalos de valores muitos distintos (ex.: a `density` possui o intervalo de 0.9871 a 1.0390, já o `total.sulfur.dioxide` possui o intervalo de 9 a 440) o que ocasionaria em uma má visualização de algumas variáveis.
+
 ``` r
 df_scale <- as.data.frame(lapply(df, scale))
 ggplot(stack(df_scale), aes(x = ind, y = values)) + 
@@ -77,7 +81,7 @@ ggplot(stack(df_scale), aes(x = ind, y = values)) +
 
 Pelo gráfico da distribuição das variáveis na mesma escaladas podemos observar alguns casos com comportamento que re-assemelham a distribuição normal, como o ácidos fixos do vinho `fixed.acidity`, o pH e os sulfatos `sulphates`. Outra observação que podemos notar é a ocorrência de valores extremos principalmente na densidade `density` e no dióxido de enxofre livre `free.sulfur.dioxide` que precisam ser avaliados individualmente.
 
-A informação mais importante que temos é a avaliação sensorial da qualidade do vinho `quality`, qual é dependente de uma avaliação sensorial para sua atribuição e possui maior margem para um bias do avaliador.
+A informação mais importante que temos é a avaliação sensorial da qualidade do vinho `quality`, qual é dependente de uma avaliação sensorial para sua atribuição e possui maior margem para um bias do avaliador. Assim vamos inicialmente ter uma visualização melhor de sua distribuição com um histograma.
 
 ``` r
 ggplot(df, aes(x = quality))  +
@@ -88,6 +92,10 @@ ggplot(df, aes(x = quality))  +
 ```
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+Ajustando os bins do histograma é possível ter uma melhor observação em comparação ao gráfico de violino onde houve uma distorção, pois mesmo sendo uma variável numérica, possui propriedades de categóricas.
+
+Para ter uma percepção melhor da distribuição da qualidade podemos gerar um gráfico de ECDF (Empirical Cumulative Distribution Function). O mesmo é a plotagem dos pontos com os valores ordenados e com suas participações percentuais. Esse tipo de gráfico vai nos ajudar a perceber visualmente a participação das notas dos vinhos.
 
 ``` r
 ggplot(df, aes(quality)) + 
@@ -103,6 +111,29 @@ ggplot(df, aes(quality)) +
 
 ![](final_prject_files/figure-markdown_github/unnamed-chunk-5-1.png)
 
+``` r
+df %>% 
+    group_by(quality) %>% 
+    summarise(
+        contagem = n(),
+        freq = n() / nrow(df)
+    ) %>% 
+    mutate(
+        freq_acc = cumsum(freq)
+    )
+```
+
+    ## # A tibble: 7 x 4
+    ##   quality contagem        freq    freq_acc
+    ##     <int>    <int>       <dbl>       <dbl>
+    ## 1       3       20 0.004083299 0.004083299
+    ## 2       4      163 0.033278889 0.037362189
+    ## 3       5     1457 0.297468354 0.334830543
+    ## 4       6     2198 0.448754594 0.783585137
+    ## 5       7      880 0.179665169 0.963250306
+    ## 6       8      175 0.035728869 0.998979175
+    ## 7       9        5 0.001020825 1.000000000
+
 Grande parte das notas se concentram principalmente entre as notas de 5 a 7 (contendo mais de 90% dos casos) mesmo sendo a nota em uma escala de 0 a 10. Podemos ainda perceber a ausência de vinhos com notas de 1, 2 e 10.
 
 ### Avaliação das propriedades fisicas e quimícas
@@ -116,7 +147,7 @@ ggplot(df, aes(x = pH))  +
          y = "Contagem de Ocorrencias")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
 O pH encontrado possui valores dentro da variabilidade normal dos vinhos (entre 3 e 4), sendo poucos casos com valores abaixo de 3 com uma acidez mais elevada.
 
@@ -129,9 +160,12 @@ ggplot(df, aes(x = pH))  +
     stat_function(fun = dnorm, args = list(mean = mean(df$pH), sd = sd(df$pH)), col = "red")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-7-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-8-1.png)
 
-Podemos ter observar a semelhança ao comparar contra a curva normal teórica com os valores amostrais da média e desvio padrão. Assim podemos testar a hipótese: H0 = O pH dos vinhos possuem uma distribuição normal H1 = O pH dos vinhos não possuem uma distribuição normal
+Podemos ter observar a semelhança ao comparar contra a curva normal teórica com os valores amostrais da média e desvio padrão. Assim podemos testar a hipótese:
+
+-   H0 = O pH dos vinhos possuem uma distribuição normal
+-   H1 = O pH dos vinhos não possuem uma distribuição normal
 
 ``` r
 ks.test(df[, pH], "pnorm", alternative = "t")
@@ -154,7 +188,7 @@ ggplot(df, aes(x = alcohol))  +
          y = "Contagem de Ocorrencias")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-9-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
 ``` r
 ggplot(df, aes(x = chlorides))  +
@@ -164,9 +198,11 @@ ggplot(df, aes(x = chlorides))  +
          y = "Contagem de Ocorrencias")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-10-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
-A concentração de sais possui uma concentração muito grande de ocorrências no intervalo de 0 a 0.1, assim para poder observar melhor a distribuição da cauda, plotamos novamente com a escala da contagem modificada pelo log.
+A concentração de sais possui uma concentração muito grande de ocorrências no intervalo de 0 a 0.1, assim para poder observar melhor a distribuição da cauda.
+
+Plotamos novamente com a escala da contagem modificada pelo log.
 
 ``` r
 ggplot(df, aes(x = chlorides))  +
@@ -177,7 +213,7 @@ ggplot(df, aes(x = chlorides))  +
          y = "Contagem de Ocorrencias")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
 Com a escala ajustada para log podemos ter uma observação muito melhor de uma distribuição se assemelhando a uma distribuição normal.
 
@@ -189,9 +225,11 @@ ggplot(df, aes(x = residual.sugar))  +
          y = "Contagem de Ocorrencias")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-12-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
 Na concentração de açucares, como nas concentrações de sais, uma concentração dos valores, principalmente abaixo de 10g/l, porém deviso a escala não conseguimos observar quantos vinhos possuem extremos.
+
+Para solucionar podemos criar novamente o gráfico com uma transformação log do açúcar residual.
 
 ``` r
 ggplot(df, aes(x = residual.sugar))  +
@@ -202,9 +240,9 @@ ggplot(df, aes(x = residual.sugar))  +
          y = "Contagem de Ocorrencias")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-14-1.png)
 
-Novamente alterando a escala da contagem para log, podemos observar a ocorrência de um vinho com uma quantidade extremamente alta em contraste aos demais. A distribuição também apresenta aspecto bi-modal que pode ser investigado uma relação com outras variáveis.
+Assim podemos observar a ocorrência de um vinho com uma quantidade extremamente alta em contraste aos demais. A distribuição também apresenta aspecto bi-modal que pode ser investigado uma relação com outras variáveis.
 
 Observando uma a referencia do [Wikipédia](https://en.wikipedia.org/wiki/Sweetness_of_wine) podemos observar que essa ocorrência que observamos é a unica onde possui a classificação de vinho doce (&gt;40g/l).
 
@@ -221,18 +259,18 @@ sweetness_class <- cut(df$residual.sugar, breaks = sweetness_ranges,
 df <- cbind(df, sweetness_class)
 ```
 
-Criamos o agrupamento dos tipos de vinho referente a quantidade de açúcar residual. Agora podemos observar as ocorrências e um boxplot dos valores dentro do grupo para entender a dispersão e estatísticas dos mesmos.
+Criamos o agrupamento dos tipos de vinho referente a quantidade de açúcar residual. Agora podemos observar as ocorrências e um box-plot dos valores dentro do grupo para entender a dispersão e estatísticas dos mesmos.
 
 ``` r
 ggplot(df, aes(x = sweetness_class, y = residual.sugar)) +
     geom_jitter(alpha = 0.1, size = 0.9) +
     geom_boxplot(alpha = 0.1, col = "red") +
-    labs(title ="BoxPlot da consentração de açucar residual por categoria", 
+    labs(title ="Box-plot da consentração de açucar residual por categoria", 
          x = "Classificação do vinho", 
          y = "Açucar Residual (g/l)")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-15-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
 ``` r
 df %>% 
@@ -265,7 +303,7 @@ ggplot(df, aes(x = residual.sugar, color = as.factor(sweetness_class))) +
          color = 'Classificação do vinho')
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-18-1.png)
 
 Podemos observar que os vinhos secos possuem uma dispersão muito menor em relação aos demais mesmo com um espaço amostral maior.
 
@@ -278,24 +316,24 @@ Iniciamos a análise bivariada com um gráfico para mostrar todas as correlaçõ
 chart.Correlation(select(df, -sweetness_class))
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-19-1.png)
 
-Visto que a nossa variável de maior interesse é a qualidade do vinho, vamos inicialmente observar por meio de um boxplot contra a concentração de álcool, a qual mostrou a maior correlação com a qualidade.
+Visto que a nossa variável de maior interesse é a qualidade do vinho, vamos inicialmente observar por meio de um box-plot contra a concentração de álcool, a qual mostrou a maior correlação com a qualidade.
 
 ``` r
 ggplot(df, aes(y = alcohol, x = as.factor(quality), fill = as.factor(quality))) + 
     geom_boxplot() +
-    labs(title ="Boxplot da Distribuição da consentração de alcool por qualidade", 
+    labs(title ="Box-plot da Distribuição da consentração de alcool por qualidade", 
          x = "Qualidade", 
          y = "Consentração de alcool (%)") +
     theme(legend.position="none")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-19-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-20-1.png)
 
 Dentre todas as classificações de qualidade é possível observar que a dispersão dos dados se mantem relativamente constante, exceto nas notas 9 onde se observa um variação menor.
 
-Durante a análise análise univariada foi encontrado uma característica bi-modal para as concentrações de açúcar residual. Esse comportamento pode estar associado a uma outra característica do vinho. Podemos avaliar se ao abrir a concentração de açúcar pela qualidade conseguimos realizar alguma associação.
+Durante a análise análise uni-variada foi encontrado uma característica bi-modal para as concentrações de açúcar residual. Esse comportamento pode estar associado a uma outra característica do vinho. Podemos avaliar se ao abrir a concentração de açúcar pela qualidade conseguimos realizar alguma associação.
 
 ``` r
 ggplot(df, aes(x = residual.sugar, color = as.factor(quality)))  +
@@ -308,7 +346,7 @@ ggplot(df, aes(x = residual.sugar, color = as.factor(quality)))  +
          color = "Qualidade")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-20-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-21-1.png)
 
 A bimodalidade do açúcar residual é mais intensa no vinhos com notas menores, conforme o incremento da qualidade, a distribuição se se acentua para concentrações menores de açúcar residual.
 
@@ -323,7 +361,7 @@ ggplot(df, aes(x = residual.sugar, y = density)) +
          y = "Densidade")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-21-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 ``` r
 summary(lm(density ~ residual.sugar, data=df))
@@ -372,9 +410,9 @@ ggplot(df, aes(x = residual.sugar, y = density, color = quality)) +
          color = "Qualidade")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-23-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-24-1.png)
 
-podemos ver uma distinção onde os vinhos com maior qualidade ocorrendo em maior frequência sob a linha de regressão do açúcar residual com a densidade.
+Podemos ver uma distinção onde os vinhos com maior qualidade ocorrendo em maior frequência sob a linha de regressão do açúcar residual com a densidade.
 
 Para tentar obter outros insights dessa tríade de variáveis, vamos inverter as coordenadas para conseguir capturar esse comportamento de forma mais clara.
 
@@ -388,7 +426,11 @@ ggplot(df, aes(x = quality, y = residual.sugar, color = density)) +
          color = "Densidade")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-24-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-25-1.png)
+
+A correlação entre a densidade e o açúcar residual fica mais destacado e é possível notar uma que a escala da densidade apresenta um gradiente radial originando nas notas maiores.
+
+Podemos agora trocar as variáveis observadas para ter a mesma visualização da densidade (que possui a maior correlação com a qualidade) e a quantidade de sais (cloretos) que possui uma correlação significativa e ainda não foi observado com outros fatores para observar o comportamento frente a qualidade.
 
 ``` r
 ggplot(df, aes(x = quality, y = chlorides, color = alcohol)) + 
@@ -400,17 +442,22 @@ ggplot(df, aes(x = quality, y = chlorides, color = alcohol)) +
          color = "Álcool %")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-25-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-26-1.png)
 
 As maiores notas estão relacionadas a maiores níveis de álcool e menores teores de cloretos, assim direcionando para quais variáveis utilizar em modelos de determinação da qualidade.
 
 ### Modelo de determinação da qualidade dos vinhos
 
 ``` r
+# As informações tem de ser passadas como matrizes para o modelo, o qual aceita
+# vamos retirar a qualidade do input e tambem o sweetness_calss para não haver
+# uma duplicidade de informação, visto que esse é o agrupamento do teor de 
+# açúcar residual
 cv_fit_lasso <- cv.glmnet(as.matrix(select(df, -quality, -sweetness_class)),
                           as.matrix(select(df, quality)))
 cv_fit_coef <- coef(cv_fit_lasso, s = "lambda.1se")
 
+# converter os dados para dataframe para utilizar o ggplot posteriormente
 cv_fit_coef_df <- as.data.frame(as.matrix(cv_fit_coef)) %>%
     rename(lasso = '1') %>%
     rownames_to_column(var = 'variable')
@@ -485,6 +532,8 @@ Gráficos Finais
 
 Nos últimos gráficos vamos explorar mais como as características se distinguem dentro dos grupos de vinhos `Dry`, `Medium dry` e `Medium`. Assim entendendo o relacionamento de algumas variáveis, principalmente as que possuem grande correlações ou que estão dentro do mesmo âmbito de propriedade química.
 
+O primeiro caso de interesse é a relação entre o álcool e a densidade. As mesmas são propriedades que foram observadas anteriormente com uma grande correlação de -0.80. Isso podemos suspeitar devido ao álcool puro ter uma densidade de 0,789 g/cm^3, muito inferior ao observado nos vinhos, assim quanto maior sua participação entende-se que vai ocasionar em uma redução na densidade do vinho (sem levar em consideração as demais variáveis).
+
 ``` r
 ggplot(df, aes(x = alcohol, y = density, col = sweetness_class)) +
     geom_jitter(alpha = 0.3) +
@@ -495,38 +544,35 @@ ggplot(df, aes(x = alcohol, y = density, col = sweetness_class)) +
          color = "classificação")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-27-1.png)
-
-Primeiramente observamos a relação da quantidade de álcool e a densidade, a qual possui uma alta correlação de -0.80. Essas duas propriedades instintivamente já nos indicariam alguma correlação visto que o álcool com densidade baixa (0,789 0,789 g/cm^3) assim quanto maior sua participação reduzindo a densidade do vinho.
+![](final_prject_files/figure-markdown_github/unnamed-chunk-28-1.png)
 
 O interessante observar como as relações entre álcool e densidade se segregam dentro dos grupos de vinho, formando cada grupo acima do outro tendo sempre inclinações próximas.
 
 Assim podemos calcular o valor de r^2 para se a *fit* dos grupos também apresentam um comportamento semelhante
 
 ``` r
-# para executar o r^2 por grupo, utilizamos o dplyr para criar sub-dataframes
-# realizar o calculo e depois capturar o r^2 por grupo
-df %>%
-    nest(-sweetness_class) %>% 
-    mutate(fit = map(data, ~ lm(density ~ alcohol, data =.)),
-           summary = map(fit, glance)) %>% 
-    select(sweetness_class, summary) %>% 
-    unnest() %>% 
-    select(sweetness_class, r.squared)
+# para executar o r^2 por grupo, utilizamos o data.table executando todos os
+# grupos simultaneamente e obterndo a inclunação do modelo linear
+df[, list(r2=summary(lm(density ~ alcohol))$r.squared, 
+        slope=summary(lm(density ~ alcohol)
+                      )$coefficients[2]
+   ), by=sweetness_class]
 ```
 
-    ##   sweetness_class r.squared
-    ## 1          Medium 0.4360426
-    ## 2             Dry 0.7089070
-    ## 3      Medium dry 0.7136833
+    ##    sweetness_class        r2        slope
+    ## 1:          Medium 0.4360426 -0.001277790
+    ## 2:             Dry 0.7089070 -0.001252286
+    ## 3:      Medium dry 0.7136833 -0.001466685
 
-Ao
+Os modelos lineares de dois dos grupos (*Dry* e *Medium dry*) apresentam um bom fit aos dados, o terceiro (*Medium*) decorrente de sua maior dispersão retorna um fit suficiente para entender seu comportamento mas não para projeção de novos vinhos.
+
+A próxima combinação é sobre os níveis de enxofre, sendo o enxofre livre e o enxofre total. Essas variáveis quando observadas sem a distinção dos grupos possuem uma correlação de 0.62. Vamos avaliar se essa relação é mais intensa ao segregarmos por grupos.
 
 ``` r
 ggplot(df, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide, 
                col = sweetness_class)) +
     scale_x_log10() +
-    geom_jitter() +
+    geom_jitter(alpha = 0.3) +
     stat_smooth(method = 'lm') +
     labs(title ="Dióxido de enxofre total por livre aberto por grupos de vinhos", 
          x = "Dióxido de enxofre total (mg / dm^3) log", 
@@ -534,9 +580,28 @@ ggplot(df, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide,
          color = "classificação")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-29-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-30-1.png)
 
 Para a relação entre o total de dióxido de enxofre e a quantidade livre, não é possível observar uma boa distinção dos grupos, porem pelas regressões lineares, podemos observar um alinhamento maior entre os grupos `Meidum` e `Medium dry`.
+
+``` r
+# É atribuido I() para a função lm entender contextualmente que a escala esta em
+# log em free.sulfur.dioxide
+df[, list(r2=summary(lm(total.sulfur.dioxide ~ I(log(free.sulfur.dioxide)))
+                     )$r.squared, 
+        slope=summary(lm(total.sulfur.dioxide ~ I(log(free.sulfur.dioxide)))
+                      )$coefficients[2]
+   ), by=sweetness_class]
+```
+
+    ##    sweetness_class        r2    slope
+    ## 1:          Medium 0.2744489 47.15410
+    ## 2:             Dry 0.2341457 31.51725
+    ## 3:      Medium dry 0.3874741 50.62777
+
+Os fits do modelo (r^2) não possuem valores tão significantes mas ainda estão no contexto de mostrar um relacionamento entre as variáveis. Dentre os grupos o `Medium dry` apresenta a melhor fit, muito distinto do `Medium` que mesmo com uma inclinação semelhante possui um r^2 ~10 pontos percentuais inferior. Como um todo ocorre uma queda na relação ao distinguir por grupos.
+
+A última verificação será as variáveis de acidez (fixa e volátil). As mesmas possuem uma correlação extremamente baixa quando observamos como um todo. Porém é interessante averiguar se ao realizarmos uma abertura pelos grupos não ocorra a mudança do comportamento, havendo correlações fortes.
 
 ``` r
 ggplot(df, aes(x = volatile.acidity, y = fixed.acidity, col = sweetness_class)) +
@@ -548,16 +613,42 @@ ggplot(df, aes(x = volatile.acidity, y = fixed.acidity, col = sweetness_class)) 
          color = "classificação")
 ```
 
-![](final_prject_files/figure-markdown_github/unnamed-chunk-30-1.png)
+![](final_prject_files/figure-markdown_github/unnamed-chunk-32-1.png)
 
-A acidez volátil e fixa acabam não possuindo nenhuma distinção entre os grupos de vinhos. Podemos ver alguma dispersão nas regressões, porém os dados são muito dispersos para poder realizar alguma conclusão.
+A acidez volátil e fixa acabam não possuindo nenhuma distinção entre os grupos de vinhos.
+
+``` r
+df[, list(r2=summary(lm(fixed.acidity ~ volatile.acidity))$r.squared, 
+        slope=summary(lm(fixed.acidity ~ volatile.acidity)
+                      )$coefficients[2]
+   ), by=sweetness_class]
+```
+
+    ##    sweetness_class           r2       slope
+    ## 1:          Medium 0.0081927434  0.68722659
+    ## 2:             Dry 0.0069511789 -0.75738478
+    ## 3:      Medium dry 0.0001292788  0.09056972
+
+Observando as inclinações, as mesmas apresentam um comportamento disperso, `Medium dry` tendendo a 0, `Dry` com inclinação negativa e `Medium` positiva, porém os valores de r^2 nos indicam que a correlação entre as variáveis também é praticamente nula quando abrimos pelos grupos.
 
 Reflexão
 ========
 
-Foi possível encontrar relacionamentos interessantes entre as características físicas e químicas nesse conjunto de dados. A parte da análise multivariada foi as que foi possível encontrar os relacionamentos mais interessantes e os que contribuem mais para uma melhor implementação de um modelo para determinação da qualidade dos vinhos.
+Foi possível encontrar relacionamentos interessantes entre as características físicas e químicas nesse conjunto de dados.
 
-Ao final o mais interessante foi poder explorar os dados e encontrar todas essas informações anteriormente ocultas nos dados.
+A análise bivariável e multivariável trouxeram o maior desafio, isso devido a grande possibilidade de combinações possíveis para compor os gráficos. Como direcionamento foi utilizado uma cadência na geração dos gráficos para que houvesse uma continuidade entre as análises realizadas anteriormente.
+
+A parte da análise multivariada foi as que foi possível encontrar os relacionamentos mais interessantes e os que contribuem mais para uma melhor implementação de um modelo para determinação da qualidade dos vinhos.
+
+O modelo obtido ao final não obteve uma boa performance, para ser utilizado para gerar previsões futuras de qualidades. Para melhorar o modelo seria necessário buscar novos relacionamento, para isso a criação de novas variáveis referente a relações de outras variáveis (como a relação de enxofre livre / enxofre total). Outra opção para buscar um modelo com melhor acurácia, é a implementação de modelos não lineares ou até mesmo redes neurais.
+
+Algumas informações seriam interessantes de termos no dataset dos vinhos brancos, a mais interessante que consigo imaginar seria a nota individual de cada um dos avaliadores. Essa informação poderia nos indicar a existência de bias dos jurados para certas características, algo que olhando como uma nota única pode esconder esse comportamento.
+
+Outra informação interessante seria a origem dos vinhos. Com ela seria possível avaliar como as origens interferem nas características dos vinhos. Até mesmo tentar modelar uma previsão da origem com base nas suas propriedades.
+
+Uma observação que pode ser realizada é no sistema de pontuação dos vinhos. O mesmo ao possuir notas tão concentradas entre os valores de 6 a 8 e a inexistência de notas nos extremos, mostra que a escala utilizada pelos avaliadores pode não ter sido a melhor disponível. Para uma futura análise seria interessante re-criar essa escala de notas com grupo de notas, preferencialmente em uma escala de três valores (assim representando de forma simples uma escala de *não gostei*, *bom* e *excelente*) assim simplificando a interpretação do gosto pessoal dos jurados.
+
+Ao final o mais interessante foi poder explorar o dataset e encontrar todas essas informações anteriormente ocultas nos dados.
 
 Referências
 -----------
